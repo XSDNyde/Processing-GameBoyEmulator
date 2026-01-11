@@ -18,7 +18,7 @@ double deltaTime, then, now;
 
 
 boolean DEBUG_OUTPUT = false;
-boolean DEBUG_OUT_ONE_LINE = false;
+boolean DEBUG_OUT_ONE_LINE = true;
 boolean DEBUG_TO_FILE = false;
 
 
@@ -58,8 +58,8 @@ void setup()
   then = System.nanoTime();
   
   soc = new SOC_LR35902();
-  soc.reset();
   soc.plugin( cartridge );
+  soc.reset();
   println( "\n" + soc );
   
   int[] tileSetOffsets = { 0x0000, 0x0800, 0x1000 }; 

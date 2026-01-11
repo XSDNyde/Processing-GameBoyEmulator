@@ -250,6 +250,9 @@ class CPU_DMG
         case "r8" :
           operand2.setOperandValueB8( currentOperandsBytes[0] );
           break;
+        case "sp+r8" :  // only appears on operand 2
+          operand2.setOperandValueB8( currentOperandsBytes[0] );
+          break;
           
         default :
           operand2 = operandMap.get( currentInstruction.operand2 );
@@ -260,6 +263,7 @@ class CPU_DMG
     // first approach, switch case
     int lowByte;
     int highByte;
+    int dByte;
     boolean doJump;
     //print( currentInstruction.mnemonic + " " );
     switch ( currentInstruction.mnemonic.toUpperCase() )
@@ -413,7 +417,10 @@ class CPU_DMG
         operand1.setValue( operand2.getValue() );
         break;
       case "LD" :
-        operand1.setValue( operand2.getValue() );
+        if( currentInstruction.operand2.equalsIgnoreCase( "SP+r8" ) )
+          registers.HL.setDoubleByte( registers.SP.getDoubleByte() + ( (byte) operand2.getValue() ) );
+        else
+          operand1.setValue( operand2.getValue() );
         break;
       case "OR" :
         // A <-- A | OP1

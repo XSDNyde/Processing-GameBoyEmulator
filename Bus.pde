@@ -131,7 +131,7 @@ class Bus_LR35902
   }
   
   
-  public class SubscriberNotFoundException extends RuntimeException
+  private class SubscriberNotFoundException extends RuntimeException
   {
     public SubscriberNotFoundException( BusSubscriber bs )
     {

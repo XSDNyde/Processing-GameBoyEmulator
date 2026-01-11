@@ -10,10 +10,13 @@ class Cartridge_DMG
   public Cartridge_DMG( byte[] romData )
   {
     // check MBC type and ROM length
-    if ( romData[ 0x0147 ] == 0x00 )
+    int t = romData[ 0x0147 ] & 0xFF;
+    if ( t == 0x00 )
       mbc = new NoMBC();
-    else if ( romData[ 0x0147 ] == 0x01 )
+    else if ( t == 0x01 || t == 0x02 || t == 0x03 )
       mbc = new MBC1();
+    else
+      throw new MemoryBankControllerTypeNotSupported( romData[ 0x0147 ] );
       
     int numBanks = 2 << romData[ 0x0148 ];
     romBanks = new ROMBank[ numBanks ];
@@ -28,5 +31,14 @@ class Cartridge_DMG
   public String toString()
   {
     return "---{ Game Cartridge DMG }---\n";
+  }
+  
+  
+  private class MemoryBankControllerTypeNotSupported extends RuntimeException
+  {
+    public MemoryBankControllerTypeNotSupported( int romData0x0147 )
+    {
+        super( "MemoryBankControllerType is not supported: " + HEX( romData0x0147 ) );
+    }
   }
 }
