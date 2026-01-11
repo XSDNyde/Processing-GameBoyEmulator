@@ -1,0 +1,2 @@
+https://github.com/lmmendes/game-boy-opcodes
+https://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
