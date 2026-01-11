@@ -242,7 +242,7 @@ public final class DmgInstructionSet
       INSTRUCTIONS[0][0xE6] = i("AND", 2, new int[]{8}, new char[]{'Z', '0', '1', '0'}, "0xe6", "x8/alu", "d8", null, "");
       INSTRUCTIONS[0][0xE7] = i("RST", 1, new int[]{16}, new char[]{'-', '-', '-', '-'}, "0xe7", "control/br", "20H", null, "");
       INSTRUCTIONS[0][0xE8] = i("ADD", 2, new int[]{16}, new char[]{'0', '0', 'H', 'C'}, "0xe8", "x16/alu", "SP", "r8", "");
-      INSTRUCTIONS[0][0xE9] = i("JP", 1, new int[]{4}, new char[]{'-', '-', '-', '-'}, "0xe9", "control/br", "(HL)", null, "");
+      INSTRUCTIONS[0][0xE9] = i("JP", 1, new int[]{4}, new char[]{'-', '-', '-', '-'}, "0xe9", "control/br", "HL", null, "");
       INSTRUCTIONS[0][0xEA] = i("LD", 3, new int[]{16}, new char[]{'-', '-', '-', '-'}, "0xea", "x8/lsm", "(a16)", "A", "");
       INSTRUCTIONS[0][0xEE] = i("XOR", 2, new int[]{8}, new char[]{'Z', '0', '0', '0'}, "0xee", "x8/alu", "d8", null, "");
       INSTRUCTIONS[0][0xEF] = i("RST", 1, new int[]{16}, new char[]{'-', '-', '-', '-'}, "0xef", "control/br", "28H", null, "");

@@ -49,7 +49,7 @@ class SOC_LR35902 extends IntegratedCircuit
       //if( stepCount >= 72_570 )
       //if( stepCount >= 73_800 )
       //if( stepCount >= 273_800 )
-      if( stepCount >= 1_000_800 )
+      if( stepCount >= 100_000_800 )
       {
         DEBUG_OUTPUT = true;
         nsSinceLastStep -= 1_000_000l;

@@ -18,6 +18,7 @@ double deltaTime, then, now;
 
 
 boolean DEBUG_OUTPUT = false;
+boolean DEBUG_OUT_ONE_LINE = false;
 boolean DEBUG_TO_FILE = false;
 
 
@@ -40,9 +41,9 @@ void setup()
   
   screen = new Screen_DMG();
   
-  //romReader = new Reader_DMGCartridge( "/roms/dmg/The_Bouncing_Ball_v0.1.0_(Gameboy)/", "THEBOUNCINGBALL.GB" );
+  romReader = new Reader_DMGCartridge( "/roms/dmg/The_Bouncing_Ball_v0.1.0_(Gameboy)/", "THEBOUNCINGBALL.GB" );
   //romReader = new Reader_DMGCartridge( "/roms/dmg/MurderMansion_rom/", "game.gb" );
-  romReader = new Reader_DMGCartridge( "/roms/dmg/cpu_instrs/", "cpu_instrs.gb" );
+  //romReader = new Reader_DMGCartridge( "/roms/dmg/cpu_instrs/", "cpu_instrs.gb" );
   //romReader = new Reader_DMGCartridge( "/roms/dmg/snake/", "snake.gb" );
   //romReader = new Reader_DMGCartridge( "/roms/dmg/", "tetris.gb" );
   //romReader = new Reader_DMGCartridge( "/roms/dmg/", "drmario.gb" );

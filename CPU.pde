@@ -1,9 +1,13 @@
 import java.util.Map;
+import java.util.Formatter;
 
 
 
 class CPU_DMG
 {
+  StringBuilder oneLiner = new StringBuilder();
+  Formatter fmtOL = new Formatter( oneLiner );
+  long stepCounter;
   /* High language convenience stuff*/
   private Map<String,Operand> operandMap;
   //private InstructionSet instructionSet;
@@ -102,6 +106,8 @@ class CPU_DMG
     currentNumReads = 0;
     
     if( DEBUG_OUTPUT ) println( "[DEBUG] [PC] is at " + HEX2( registers.PC.getDoubleByte() ) );
+    oneLiner.setLength(0);
+    oneLiner.append( "[STEP=" ).append( stepCounter ).append( "][PC=" ).append( HEX2( registers.PC.getDoubleByte() ) ).append( "]" );
     
     //if( registers.PC.getDoubleByte() == 0x0100 ) exit();
     
@@ -114,13 +120,21 @@ class CPU_DMG
     
     if( currentInstruction.mnemonic.equalsIgnoreCase( "PREFIX" ) )
     {
+      fmtOL.format( "[INST=%02X/%-6s]", currentInstructionCode, currentInstruction.mnemonic );
       if( DEBUG_OUTPUT ) println( "[DEBUG] PREFIX Signaled! Reading another byte from program!" );
       fetchNextInstructionCodeByte();
       if( DEBUG_OUTPUT ) println( "[DEBUG] Instruction Code " + HEX( currentInstructionCode ) + " has been loaded into the CPU!" );
       
       currentInstruction = instructionSet.decode( currentInstructionCode, true );
       if( DEBUG_OUTPUT ) println( "[DEBUG] " + currentInstruction );
+      fmtOL.format( "[INST=%02X/%-6s]", currentInstructionCode, currentInstruction.mnemonic );
     }
+    else
+    {
+      oneLiner.append( "                " );
+      fmtOL.format( "[INST=%02X/%-6s]", currentInstructionCode, currentInstruction.mnemonic );
+    }
+    fmtOL.format( "[OPT=%-5s%-5s]", currentInstruction.operand1, currentInstruction.operand2 );
     
     // find out how many bytes have operand data
     currentNumOperandsBytes = currentInstruction.length - currentNumReads;
@@ -131,13 +145,19 @@ class CPU_DMG
     {
       case 2 :
         currentOperandsBytes = new int[] { readNextProgramByte(), readNextProgramByte() };
+        oneLiner.append( "[OP1=" ).append( HEX( currentOperandsBytes[0] ) ).append( "]" );
+        oneLiner.append( "[OP2=" ).append( HEX( currentOperandsBytes[1] ) ).append( "]" );
         break;
       case 1 :
         currentOperandsBytes = new int[] { readNextProgramByte() };
+        oneLiner.append( "[OP1=" ).append( HEX( currentOperandsBytes[0] ) ).append( "]" );
+        oneLiner.append( "          " );
         break;
-      case 0 :
+      case 0 :  // Fallthrough
       default :
         currentOperandsBytes = new int[] {};
+        oneLiner.append( "          " );
+        oneLiner.append( "          " );
         break;
     }
     if( DEBUG_OUTPUT && currentOperandsBytes.length > 0 )
@@ -266,7 +286,10 @@ class CPU_DMG
           // TODO: setHalfCarryFlagTo( ??? );
         }
         else if( currentInstruction.operand1.equalsIgnoreCase( "SP" ) )
-          assert false : "ADD SP,r8";
+        {
+          lowByte = operand2.getByte();
+          registers.SP.setDoubleByte( registers.SP.getDoubleByte() + ( (byte) lowByte ) );
+        }
         else // OP1 == A
         {
           lowByte = registers.A.getByte( ) + operand1.getByte();
@@ -492,6 +515,14 @@ class CPU_DMG
         // TODO: setHalfCarryFlagTo( ??? );
         setCarryFlagTo( ( lowByte & 0b1_0000_0000 ) != 0 );
         break;
+      case "SWAP" :
+        // swaps nibbles
+        lowByte = operand1.swapNibbles();
+        setZeroFlagTo( ( lowByte & 0xFF ) == 0x00 );
+        resetSubtractionFlag();
+        resetHalfCarryFlag();
+        resetCarryFlag();
+        break;
       case "XOR" :
         // A <-- A ^ OP1
         registers.A.setByte( registers.A.getByte( ) ^ operand1.getByte() );
@@ -505,8 +536,12 @@ class CPU_DMG
         assert false : "[ERROR] Unkown Command: " + currentInstruction.mnemonic.toUpperCase();
     }
     
+    stepCounter++;
+    
     if( DEBUG_OUTPUT ) println( registers );
     //println( summary );
+    fmtOL.format( "A:%02X B:%02X C:%02X D:%02X E:%02X F:%02X H:%02X L:%02X PC:%04X SP:%04X", registers.A.getByte(), registers.B.getByte(), registers.C.getByte(), registers.D.getByte(), registers.E.getByte(), registers.F.getByte(), registers.H.getByte(), registers.L.getByte(), registers.PC.getDoubleByte(), registers.SP.getDoubleByte() );
+    if ( DEBUG_OUT_ONE_LINE ) println( oneLiner );
   }
   
   
@@ -530,6 +565,8 @@ class CPU_DMG
   
   public void reset()
   {
+    stepCounter = 0l;
+    
     registers.reset();
         
     // DEBUG PURPOSE:
@@ -539,6 +576,8 @@ class CPU_DMG
   
   public void resetPostBootROM()
   {
+    stepCounter = 0l;  // really, though?
+    
     registers.resetPostBootROM();
         
     // DEBUG PURPOSE:
@@ -1107,6 +1146,41 @@ class CPU_DMG
           assert false : "shiftRightArithmetic() from Flag is illegel!";
         default :
           return;
+      }
+    }
+    
+    
+    public int swapNibbles()
+    {
+      int out;
+      switch ( type )
+      {
+        case REGISTER_B8 :
+          if( isBusAddress )
+            out = bus.read( 0xFF00 | registerB8.getByte() );
+          else
+            out = registerB8.getByte();
+          out = ( ( out & 0xF0 ) >> 4 ) | ( ( out & 0x0F ) << 4);
+          if( isBusAddress )
+            bus.write( 0xFF00 | registerB8.getByte(), out );
+          else
+            registerB8.setByte( out );
+          return out;
+        case REGISTER_B16 :
+          if( ! isBusAddress )
+            assert false : "SwapNibbles of 2 Byte Register is illegal!";
+          out = bus.read( registerB16.getDoubleByte() );
+          out = ( ( out & 0xF0 ) >> 4 ) | ( ( out & 0x0F ) << 4);
+          bus.write( registerB16.getDoubleByte(), out );
+          return out;
+        case VALUE_B8 :
+          assert false : "SwapNibbles of Byte on a direct value!";
+        case VALUE_B16 :
+          assert false : "SwapNibbles of DoubleByte on a direct value!";
+        case FLAG :
+          assert false : "SwapNibbles of Flag is illegel!";
+        default :
+          return 0x00;
       }
     }
     
