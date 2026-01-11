@@ -44,7 +44,9 @@ void setup()
   //romReader = new Reader_DMGCartridge( "/roms/dmg/MurderMansion_rom/", "game.gb" );
   romReader = new Reader_DMGCartridge( "/roms/dmg/cpu_instrs/", "cpu_instrs.gb" );
   //romReader = new Reader_DMGCartridge( "/roms/dmg/snake/", "snake.gb" );
-  //romReader = new Reader_DMGCartridge( "/roms/dmg/Tetris (World) (Rev A)/", "Tetris (World) (Rev A).gb" );
+  //romReader = new Reader_DMGCartridge( "/roms/dmg/", "tetris.gb" );
+  //romReader = new Reader_DMGCartridge( "/roms/dmg/", "drmario.gb" );
+  //romReader = new Reader_DMGCartridge( "/roms/dmg/", "pokebluejp.gb" );
   
   romReader.printCartridgeHeader();
   cartridge = new Cartridge_DMG( romReader.getROMData() );

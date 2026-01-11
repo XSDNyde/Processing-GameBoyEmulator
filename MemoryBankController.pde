@@ -46,7 +46,7 @@ class MemoryBankController implements BusSubscriber
   void write( int address, int value )
   {
     assert address >= 0 && address < length : "Trying to access an element outside the MBC!";
-    assert false : "MBC Configuration Write! Address: " + HEX2( address ) + ", Value: " + HEX( value );
+    assert value == 0x00 : "MBC Configuration Write! Address: " + HEX2( address ) + ", Value: " + HEX( value ) + " Only value 0x00 --> ROM Bank Mode is implemented!";
     if( DEBUG_OUTPUT ) println( "MBC Configuration Write! Address: " + HEX2( address ) + ", Value: " + HEX( value ) );
   }
   
@@ -85,34 +85,18 @@ class MBC1 extends MemoryBankController
     // TODO: 0x4000 RAM Bank / 2 bit of ROM Bank
     // TODO: 0x6000 ROM / RAM Mode
     
-    bus.detach( mappedBankNN );
-    
     int newBank;
-    switch( value )
-    {
-      case 0x00 :
-      case 0x01 :
-        newBank = 0x01;
-        break;
-      case 0x20 :
-      case 0x21 :
-        newBank = 0x21;
-        break;
-      case 0x40 :
-      case 0x41 :
-        newBank = 0x41;
-        break;
-      case 0x60 :
-      case 0x61 :
-        newBank = 0x61;
-        break;
-      default :
-        newBank = value;
-    }
+    // lowest 5 bit are cehcked if 0 and if set to 1
+    if ( ( value & 0b0001_1111 ) == 0 )
+      value |= 0b0000_0001;
+    newBank = value & 0b0001_1111;// TODO: incorporate 2 more bits from 4000h-5FFF write
     
     assert newBank > 0x00 & newBank < romBanks.length : "[MBC1] Tried to map ROM Bank " + HEX( newBank ) + " but it does not exist!";
+    
+    bus.detach( mappedBankNN );
     mappedBankNN = romBanks[ newBank ];
     bus.attach( 0x4000, mappedBankNN, true, false );
+    
     if( true ) println( "[MBC1] Attached Bank: " + HEX( newBank ) + " to the bus!" );
   }
 }

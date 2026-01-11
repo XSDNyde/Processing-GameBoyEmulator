@@ -5,8 +5,8 @@ import java.util.function.Consumer;
 
 class IORegisters implements BusSubscriber
 {
-  boolean DEBUG_READ = true;
-  boolean DEBUG_WRITE = true;
+  boolean DEBUG_READ = false;
+  boolean DEBUG_WRITE = false;
   
   
   final byte[] data = new byte[0x0080];

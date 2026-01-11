@@ -20,7 +20,6 @@ class Bus_LR35902
     this.ADDRESS_WIDTH = 16;
     this.DATA_WIDTH = 8;
     this.subscribers = new ArrayList<>();
-    this.attach( 0xE000, new DebugSubscriber( 0x1E00 ) );
   }
   
   
@@ -67,10 +66,8 @@ class Bus_LR35902
   
   
   // TODO: This requires more attention. Should the Emulator take care of splitting up attached subscribers? Or does the developer need to take care?
-  public void attach( int firstAddress, BusSubscriber attachee ) { attach( firstAddress, attachee, 0, true, true ); }
-  public void attach( int firstAddress, BusSubscriber attachee, int priority ) { attach( firstAddress, attachee, priority, true, true ); }
-  public void attach( int firstAddress, BusSubscriber attachee, boolean readEnabled, boolean writeEnabled ) { attach( firstAddress, attachee, 0, readEnabled, writeEnabled ); }
-  public void attach( int firstAddress, BusSubscriber attachee, int priority, boolean readEnabled, boolean writeEnabled )
+  public void attach( int firstAddress, BusSubscriber attachee ) { attach( firstAddress, attachee, true, true ); }
+  public void attach( int firstAddress, BusSubscriber attachee, boolean readEnabled, boolean writeEnabled )
   {
     subscribers.add( new AddressMapper( firstAddress, attachee.getLength(), attachee, readEnabled, writeEnabled ) );
     
@@ -87,7 +84,7 @@ class Bus_LR35902
       if ( am.attachee == detachee )
       {
         subscribers.remove( am );
-        if( DEBUG_OUTPUT ) println( "[DEBUG] [BUS] Subscriber removed: " + detachee );
+        if( true ) println( "[DEBUG] [BUS] Subscriber removed: " + detachee );
         return;  // avoid concurrency conflict
       }
     }

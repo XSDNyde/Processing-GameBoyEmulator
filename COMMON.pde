@@ -49,4 +49,11 @@ public class ByteArrayByteSlice extends ByteArraySlice
   public int get() { return get( 0 ); }
   public int getSigned() { return getSigned( 0 ); }
   public void set( int v ) { set( 0, v ); }
+  
+  
+  public byte    bit        ( int i, int b ) { return super.bit        ( 0, b ); }
+  public boolean isBitSet   ( int i, int b ) { return super.isBitSet   ( 0, b ); }
+  public boolean isBitNotSet( int i, int b ) { return super.isBitNotSet( 0, b ); }
+  public void    setBit     ( int i, int b ) {        super.setBit     ( 0, b ); }
+  public void    resetBit   ( int i, int b ) {        super.resetBit   ( 0, b ); }
 }

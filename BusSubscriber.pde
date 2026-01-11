@@ -24,7 +24,8 @@ class DebugSubscriber implements BusSubscriber
   @Override
   int read( int address )
   {
-    if( DEBUG_OUTPUT ) println( "DebugBusSubscriber fullfills READ OF " + HEX( 0xFF ) + " FROM " + HEX2( address ) );
+    assert false : "[DebugSubscriber] Length: " + HEX2( getLength() ) + " fullfills READ OF " + HEX( 0xFF ) + " FROM " + HEX2( address );
+    if( DEBUG_OUTPUT ) println( "DebugSubscriber fullfills READ OF " + HEX( 0xFF ) + " FROM " + HEX2( address ) );
     return 0xFF;
   }
   
@@ -32,6 +33,7 @@ class DebugSubscriber implements BusSubscriber
   @Override
   void write( int address, int value )
   {
+    //assert false : "[DebugSubscriber] Length: " + HEX2( getLength() ) + " fullfills WRITE " + HEX( value ) + " TO " + HEX2( address );
     if( DEBUG_OUTPUT ) println( "DebugBusSubscriber fullfills WRITE " + HEX( value ) + " TO " + HEX2( address ) );
   }
   

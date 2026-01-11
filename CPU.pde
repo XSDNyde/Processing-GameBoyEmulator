@@ -77,16 +77,15 @@ class CPU_DMG
     //instructionSet.initialize();
     instructionSet = new DmgInstructionSet();
     
-    // map [0000,0100[ to the bootstrap memory on CPU ROM
-    bus.attach( 0x0000, romBootstrapMemory, 1 );
+    bus.attach( 0x0000, romBootstrapMemory );
     bus.attach( 0x8000, videoRAM );
     //bus.attach( 0xA000, 0x2000, cartridgeRAM ); // will be set by plugin in cartridge
     bus.attach( 0xA000, new DebugSubscriber( 0x2000 ) );
-    bus.attach( 0xC000, new WorkRAM() );
-    //bus.attach( 0xE000, 0x1E00, mirrorRAM );
+    WorkRAM w;
+    bus.attach( 0xC000, w = new WorkRAM() );
+    bus.attach( 0xE000, new MirrorRAM( w ) );
     bus.attach( 0xFE00, oam );
-    //bus.attach( 0xFEA0, new UnusableAddressesBusSubscriber() );
-    bus.attach( 0xFEA0, new DebugSubscriber( 0x0060 ) );
+    bus.attach( 0xFEA0, new OAMUnused() );
     bus.attach( 0xFF00, ioRegisters );
     bus.attach( 0xFF80, new HighRAM() );
     bus.attach( 0xFFFF, new IERegister() );
@@ -248,6 +247,7 @@ class CPU_DMG
     // first approach, switch case
     int lowByte;
     int highByte;
+    boolean doJump;
     //print( currentInstruction.mnemonic + " " );
     switch ( currentInstruction.mnemonic.toUpperCase() )
     {
@@ -346,12 +346,33 @@ class CPU_DMG
         }
         break;
       case "JP" :
-        registers.PC.setDoubleByte( operand1.getValue() );
-        if( DEBUG_OUTPUT ) println( "[DEBUG] JUMP TAKEN!" );
+        doJump = true;
+        switch ( currentInstruction.operand1.toUpperCase() )
+        {
+          case "C" :
+            doJump =   registers.getCarryFlag();
+            break;
+          case "NC" :
+            doJump = ! registers.getCarryFlag();
+            break;
+          case "Z" :
+            doJump =   registers.getZeroFlag();
+            break;
+          case "NZ" :
+            doJump = ! registers.getZeroFlag();
+            break;
+        }
+        if( doJump )
+        {
+          registers.PC.setDoubleByte( (byte) ( ( operand2 == null ) || ( operand2.type == OperandType.NONE ) ? operand1.getValue() : operand2.getValue() ) );
+          if( DEBUG_OUTPUT ) println( "[DEBUG] JP JUMP TAKEN!" );
+        }
+        else
+          if( DEBUG_OUTPUT ) println( "[DEBUG] JP jump NOT taken!" );
         if( DEBUG_OUTPUT ) println( "[DEBUG] [PC] is now " + HEX2( registers.PC.getDoubleByte() ) );
         break;
       case "JR" :
-        boolean doJump = true;
+        doJump = true;
         switch ( currentInstruction.operand1.toUpperCase() )
         {
           case "C" :
@@ -652,7 +673,7 @@ class CPU_DMG
       this.H.setByte( 0x01 );
       this.L.setByte( 0x4D );
       this.SP.setDoubleByte( 0xFFFE );
-      this.PC.setDoubleByte( 0x0000 );
+      this.PC.setDoubleByte( 0x0100 );
     }
     
     
