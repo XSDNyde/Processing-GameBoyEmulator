@@ -7,6 +7,7 @@ interface BusSubscriber
   public void write( int address, int value );
   
   public int getLength();
+  public String toString();
 }
 
 

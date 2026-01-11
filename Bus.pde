@@ -67,9 +67,10 @@ class Bus_LR35902
   
   // TODO: This requires more attention. Should the Emulator take care of splitting up attached subscribers? Or does the developer need to take care?
   public void attach( int firstAddress, BusSubscriber attachee ) { attach( firstAddress, attachee, true, true ); }
-  public void attach( int firstAddress, BusSubscriber attachee, boolean readEnabled, boolean writeEnabled )
+  public void attach( int firstAddress, BusSubscriber attachee, boolean readEnabled, boolean writeEnabled ) { attach( firstAddress, attachee.getLength(), attachee, readEnabled, writeEnabled ); }
+  public void attach( int firstAddress, int length, BusSubscriber attachee, boolean readEnabled, boolean writeEnabled )
   {
-    subscribers.add( new AddressMapper( firstAddress, attachee.getLength(), attachee, readEnabled, writeEnabled ) );
+    subscribers.add( new AddressMapper( firstAddress, length, attachee, readEnabled, writeEnabled ) );
     
     // sort preserves relativ order -> important for priority answering e.g. bootstrap
     subscribers.sort( Comparator.comparingInt( am -> am.firstAddress ) );
@@ -89,7 +90,7 @@ class Bus_LR35902
       }
     }
     
-    println( "Tried to remove " + detachee + " from the bus, but did not find a match!" );
+    throw new SubscriberNotFoundException( detachee );
   }
   
   
@@ -126,6 +127,15 @@ class Bus_LR35902
     String toString()
     {
       return "Start:" + HEX2( firstAddress ) + "  Last:" + HEX2( firstAddress+lengthBytes-1 ) + "  Type:" + attachee;
+    }
+  }
+  
+  
+  public class SubscriberNotFoundException extends RuntimeException
+  {
+    public SubscriberNotFoundException( BusSubscriber bs )
+    {
+        super( "BusSubscriber could not be found: " + bs );
     }
   }
 }

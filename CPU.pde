@@ -4,16 +4,15 @@ import java.util.Map;
 
 class CPU_DMG
 {
-  private String summary;
   /* High language convenience stuff*/
   private Map<String,Operand> operandMap;
   //private InstructionSet instructionSet;
   private DmgInstructionSet instructionSet;
-  private byte currentInstructionCode;
+  private int currentInstructionCode;
   private Instruction currentInstruction;
   private int currentNumReads;
   private int currentNumOperandsBytes;
-  private byte[] currentOperandsBytes;
+  private int[] currentOperandsBytes;
   
   private boolean IME = false; // Interrupt Master Enable
   private Registers registers;
@@ -104,14 +103,10 @@ class CPU_DMG
     
     if( DEBUG_OUTPUT ) println( "[DEBUG] [PC] is at " + HEX2( registers.PC.getDoubleByte() ) );
     
-    summary = "[CPU] PC@ " + HEX2( registers.PC.getDoubleByte() ) + " ";
-    
     //if( registers.PC.getDoubleByte() == 0x0100 ) exit();
     
-    fetchNextInstructionCode();
+    fetchNextInstructionCodeByte();
     if( DEBUG_OUTPUT ) println( "[DEBUG] Instruction Code " + HEX( currentInstructionCode ) + " has been loaded into the CPU!" );
-    
-    summary += HEX( currentInstructionCode ) + " --> ";
     
     //currentInstruction = instructionSet.decode( currentInstructionCode );
     currentInstruction = instructionSet.decode( currentInstructionCode );
@@ -120,14 +115,12 @@ class CPU_DMG
     if( currentInstruction.mnemonic.equalsIgnoreCase( "PREFIX" ) )
     {
       if( DEBUG_OUTPUT ) println( "[DEBUG] PREFIX Signaled! Reading another byte from program!" );
-      fetchNextInstructionCode();
+      fetchNextInstructionCodeByte();
       if( DEBUG_OUTPUT ) println( "[DEBUG] Instruction Code " + HEX( currentInstructionCode ) + " has been loaded into the CPU!" );
       
       currentInstruction = instructionSet.decode( currentInstructionCode, true );
       if( DEBUG_OUTPUT ) println( "[DEBUG] " + currentInstruction );
     }
-    
-    summary += currentInstruction.mnemonic;
     
     // find out how many bytes have operand data
     currentNumOperandsBytes = currentInstruction.length - currentNumReads;
@@ -137,20 +130,20 @@ class CPU_DMG
     switch ( currentNumOperandsBytes )
     {
       case 2 :
-        currentOperandsBytes = new byte[] { readNextProgramByte(), readNextProgramByte() };
+        currentOperandsBytes = new int[] { readNextProgramByte(), readNextProgramByte() };
         break;
       case 1 :
-        currentOperandsBytes = new byte[] { readNextProgramByte() };
+        currentOperandsBytes = new int[] { readNextProgramByte() };
         break;
       case 0 :
       default :
-        currentOperandsBytes = new byte[] {};
+        currentOperandsBytes = new int[] {};
         break;
     }
     if( DEBUG_OUTPUT && currentOperandsBytes.length > 0 )
     {
       println( "[DEBUG] Operand bytes are:" );
-      for( byte b : currentOperandsBytes )
+      for( var b : currentOperandsBytes )
         println( "[DEBUG] \t"+HEX( b ) );
     }
     
@@ -253,24 +246,24 @@ class CPU_DMG
     {
       case "ADC" :
         // A <-- A + OP1 + Cy
-        lowByte = registers.A.getByte( ) + operand1.getByte() + ( registers.getCarryFlag() ? 1 : 0 );
+        lowByte = registers.A.getByte( ) + operand1.getByte() + ( getCarryFlag() ? 1 : 0 );
         registers.A.setByte( lowByte & 0xFF );
-        registers.setZeroFlagTo( ( lowByte & 0xFF ) == 0x00 );
-        registers.resetSubtractionFlag();
-        // TODO: registers.setHalfCarryFlagTo( ??? );
-        registers.setCarryFlagTo( ( lowByte & 0b1_0000_0000 ) != 0 );
+        setZeroFlagTo( ( lowByte & 0xFF ) == 0x00 );
+        resetSubtractionFlag();
+        // TODO: setHalfCarryFlagTo( ??? );
+        setCarryFlagTo( ( lowByte & 0b1_0000_0000 ) != 0 );
         break;
       case "ADD" :
         // A <-- A + OP1
         if( currentInstruction.operand1.equalsIgnoreCase( "HL" ) )
         {
           int v = registers.HL.getDoubleByte( ) + operand1.getDoubleByte();
-          registers.setCarryFlagTo( ( v & 0x1_0000 ) != 0 );
+          setCarryFlagTo( ( v & 0x1_0000 ) != 0 );
           v &= 0xFFFF;
           registers.HL.setDoubleByte( v );
-          registers.setZeroFlagTo( v == 0x0000 );
-          registers.resetSubtractionFlag();
-          // TODO: registers.setHalfCarryFlagTo( ??? );
+          setZeroFlagTo( v == 0x0000 );
+          resetSubtractionFlag();
+          // TODO: setHalfCarryFlagTo( ??? );
         }
         else if( currentInstruction.operand1.equalsIgnoreCase( "SP" ) )
           assert false : "ADD SP,r8";
@@ -278,24 +271,24 @@ class CPU_DMG
         {
           lowByte = registers.A.getByte( ) + operand1.getByte();
           registers.A.setByte( lowByte & 0xFF );
-          registers.setZeroFlagTo( ( lowByte & 0xFF ) == 0x00 );
-          registers.resetSubtractionFlag();
-          // TODO: registers.setHalfCarryFlagTo( ??? );
-          registers.setCarryFlagTo( ( lowByte & 0b1_0000_0000 ) != 0 );
+          setZeroFlagTo( ( lowByte & 0xFF ) == 0x00 );
+          resetSubtractionFlag();
+          // TODO: setHalfCarryFlagTo( ??? );
+          setCarryFlagTo( ( lowByte & 0b1_0000_0000 ) != 0 );
         }
         break;
       case "AND" :
         // A <-- A & OP1
         registers.A.setByte( registers.A.getByte( ) & operand1.getByte() );
-        registers.setZeroFlagTo( operand1.getByte() == 0x00 );
-        registers.resetSubtractionFlag();
-        registers.setHalfCarryFlag();
-        registers.resetCarryFlag();
+        setZeroFlagTo( operand1.getByte() == 0x00 );
+        resetSubtractionFlag();
+        setHalfCarryFlag();
+        resetCarryFlag();
         break;
       case "BIT" :
-        registers.setZeroFlagTo( ( ( 1 << Integer.parseInt( currentInstruction.operand1 ) ) & operand2.getByte() ) == 0 );
-        registers.resetSubtractionFlag();
-        registers.setHalfCarryFlag();
+        setZeroFlagTo( ( ( 1 << Integer.parseInt( currentInstruction.operand1 ) ) & operand2.getByte() ) == 0 );
+        resetSubtractionFlag();
+        setHalfCarryFlag();
         if( DEBUG_OUTPUT ) println( "[DEBUG] [OP] [BIT] Zeroflag " + ( ( ( 1 << Integer.parseInt( currentInstruction.operand1 ) ) & operand2.getByte() ) == 0 ? "SET" : "NOT SET" ) );
         break;
       case "CALL" :
@@ -311,18 +304,18 @@ class CPU_DMG
         break;
       case "CP" :
         lowByte = registers.A.getByte() - operand1.getByte();
-        registers.setZeroFlagTo( ( lowByte & 0xFF ) == 0 );
-        registers.setSubtractionFlag();
-        // TODO: registers.setHalfCarryFlagTo( ??? )
-        registers.setCarryFlagTo( ( lowByte & 0b1_0000_0000 ) != 0 );
+        setZeroFlagTo( ( lowByte & 0xFF ) == 0 );
+        setSubtractionFlag();
+        // TODO: setHalfCarryFlagTo( ??? )
+        setCarryFlagTo( ( lowByte & 0b1_0000_0000 ) != 0 );
         break;
       case "DEC" :
         operand1.setValue( operand1.getValue() - 1 );
         if( operand1.type == OperandType.REGISTER_B8 )
         {
-          registers.setZeroFlagTo( operand1.getByte() == 0x00 );
-          registers.setSubtractionFlag();
-          // TODO: registers.setHalfCarryFlagTo( ??? );
+          setZeroFlagTo( operand1.getByte() == 0x00 );
+          setSubtractionFlag();
+          // TODO: setHalfCarryFlagTo( ??? );
         }
         break;
       case "DI" :
@@ -340,9 +333,9 @@ class CPU_DMG
         operand1.setValue( operand1.getValue() + 1 );
         if( operand1.type == OperandType.REGISTER_B8 )
         {
-          registers.setZeroFlagTo( operand1.getByte() == 0x00 );
-          registers.resetSubtractionFlag();
-          // TODO: registers.setHalfCarryFlagTo( ??? );
+          setZeroFlagTo( operand1.getByte() == 0x00 );
+          resetSubtractionFlag();
+          // TODO: setHalfCarryFlagTo( ??? );
         }
         break;
       case "JP" :
@@ -350,21 +343,21 @@ class CPU_DMG
         switch ( currentInstruction.operand1.toUpperCase() )
         {
           case "C" :
-            doJump =   registers.getCarryFlag();
+            doJump =   getCarryFlag();
             break;
           case "NC" :
-            doJump = ! registers.getCarryFlag();
+            doJump = ! getCarryFlag();
             break;
           case "Z" :
-            doJump =   registers.getZeroFlag();
+            doJump =   getZeroFlag();
             break;
           case "NZ" :
-            doJump = ! registers.getZeroFlag();
+            doJump = ! getZeroFlag();
             break;
         }
         if( doJump )
         {
-          registers.PC.setDoubleByte( (byte) ( ( operand2 == null ) || ( operand2.type == OperandType.NONE ) ? operand1.getValue() : operand2.getValue() ) );
+          registers.PC.setDoubleByte(  ( operand2 == null ) || ( operand2.type == OperandType.NONE ) ? operand1.getDoubleByte() : operand2.getDoubleByte() );
           if( DEBUG_OUTPUT ) println( "[DEBUG] JP JUMP TAKEN!" );
         }
         else
@@ -376,20 +369,20 @@ class CPU_DMG
         switch ( currentInstruction.operand1.toUpperCase() )
         {
           case "C" :
-            doJump =   registers.getCarryFlag();
+            doJump =   getCarryFlag();
             break;
           case "NC" :
-            doJump = ! registers.getCarryFlag();
+            doJump = ! getCarryFlag();
             break;
           case "Z" :
-            doJump =   registers.getZeroFlag();
+            doJump =   getZeroFlag();
             break;
           case "NZ" :
-            doJump = ! registers.getZeroFlag();
+            doJump = ! getZeroFlag();
             break;
         }
         if( doJump )
-          registers.PC.setDoubleByte( registers.PC.getDoubleByte() + (byte) ( ( operand2 == null ) || ( operand2.type == OperandType.NONE ) ? operand1.getValue() : operand2.getValue() ) );
+          registers.PC.setDoubleByte( registers.PC.getDoubleByte() + (byte) ( ( operand2 == null ) || ( operand2.type == OperandType.NONE ) ? operand1.getByte() : operand2.getByte() ) );
         if( DEBUG_OUTPUT ) println( "[DEBUG] Conditional Jump " + ( doJump ? "" : "NOT" ) + " TAKEN!" );
         if( DEBUG_OUTPUT ) println( "[DEBUG] [PC] is now " + HEX2( registers.PC.getDoubleByte() ) );
         break;
@@ -402,10 +395,10 @@ class CPU_DMG
       case "OR" :
         // A <-- A | OP1
         registers.A.setByte( registers.A.getByte() | operand1.getByte() );
-        registers.setZeroFlagTo( operand1.getByte() == 0x00 );
-        registers.resetSubtractionFlag();
-        registers.resetHalfCarryFlag();
-        registers.resetCarryFlag();
+        setZeroFlagTo( operand1.getByte() == 0x00 );
+        resetSubtractionFlag();
+        resetHalfCarryFlag();
+        resetCarryFlag();
         break;
       case "POP" :
         lowByte = bus.read( registers.SP.getDoubleByte() );
@@ -432,47 +425,47 @@ class CPU_DMG
       case "RLA" :
         // rotate left; bit 0 <-- Carry; Carry <-- bit 8;
         operandMap.get( "A" ).rotateLeft( false );
-        registers.resetZeroFlag();
-        registers.resetSubtractionFlag();
-        registers.resetHalfCarryFlag();
+        resetZeroFlag();
+        resetSubtractionFlag();
+        resetHalfCarryFlag();
         break;
       case "RLCA" :
         // rotate left; bit 0 <-- bit 8;
         operandMap.get( "A" ).rotateLeft( true );
-        registers.resetZeroFlag();
-        registers.resetSubtractionFlag();
-        registers.resetHalfCarryFlag();
+        resetZeroFlag();
+        resetSubtractionFlag();
+        resetHalfCarryFlag();
         break;
       case "RLC" :
         // rotate left; bit 0 <-- bit 8;
         operand1.rotateLeft( true );
-        registers.setZeroFlagTo( operand1.getByte() == 0x00 );
-        registers.resetSubtractionFlag();
-        registers.resetHalfCarryFlag();
+        setZeroFlagTo( operand1.getByte() == 0x00 );
+        resetSubtractionFlag();
+        resetHalfCarryFlag();
         break;
       case "RL" :
         // rotate left; bit 0 <-- Carry; Carry <-- bit 8;
         operand1.rotateLeft( false );
-        registers.setZeroFlagTo( operand1.getByte() == 0x00 );
-        registers.resetSubtractionFlag();
-        registers.resetHalfCarryFlag();
+        setZeroFlagTo( operand1.getByte() == 0x00 );
+        resetSubtractionFlag();
+        resetHalfCarryFlag();
         break;
       case "RRA" :
-        int fill = registers.getCarryFlag() ? 0b1000_0000 : 0b0000_0000;
+        int fill = getCarryFlag() ? 0b1000_0000 : 0b0000_0000;
         int out = registers.A.getByte();
-        registers.setCarryFlagTo( ( out & 0b0000_0001 ) != 0 );
+        setCarryFlagTo( ( out & 0b0000_0001 ) != 0 );
         out = ( ( ( out & 0xFF ) >> 1 ) & 0b0111_1111 ) | fill;
         registers.A.setByte( out );
-        registers.resetZeroFlag();
-        registers.resetSubtractionFlag();
-        registers.resetHalfCarryFlag();
+        resetZeroFlag();
+        resetSubtractionFlag();
+        resetHalfCarryFlag();
         break;
       case "RR" :
         // rotate left; bit 0 <-- Carry; Carry <-- bit 8;
         operand1.rotateRight( false );
-        registers.setZeroFlagTo( operand1.getByte() == 0x00 );
-        registers.resetSubtractionFlag();
-        registers.resetHalfCarryFlag();
+        setZeroFlagTo( operand1.getByte() == 0x00 );
+        resetSubtractionFlag();
+        resetHalfCarryFlag();
         break;
       case "RST" :
         // (--SP) <-- PC high Byte
@@ -486,26 +479,26 @@ class CPU_DMG
         break;
       case "SRL" :
         operand1.shiftRightArithmetic();
-        registers.setZeroFlagTo( operand1.getByte() == 0x00 );
-        registers.resetSubtractionFlag();
-        registers.resetHalfCarryFlag();
+        setZeroFlagTo( operand1.getByte() == 0x00 );
+        resetSubtractionFlag();
+        resetHalfCarryFlag();
         break;
       case "SUB" :
         // A <-- A - OP1
         lowByte = registers.A.getByte( ) - operand1.getByte();
         registers.A.setByte( lowByte & 0xFF );
-        registers.setZeroFlagTo( ( lowByte & 0xFF ) == 0x00 );
-        registers.setSubtractionFlag();
-        // TODO: registers.setHalfCarryFlagTo( ??? );
-        registers.setCarryFlagTo( ( lowByte & 0b1_0000_0000 ) != 0 );
+        setZeroFlagTo( ( lowByte & 0xFF ) == 0x00 );
+        setSubtractionFlag();
+        // TODO: setHalfCarryFlagTo( ??? );
+        setCarryFlagTo( ( lowByte & 0b1_0000_0000 ) != 0 );
         break;
       case "XOR" :
         // A <-- A ^ OP1
         registers.A.setByte( registers.A.getByte( ) ^ operand1.getByte() );
-        registers.setZeroFlagTo( operand1.getByte() == 0x00 );
-        registers.resetSubtractionFlag();
-        registers.resetHalfCarryFlag();
-        registers.resetCarryFlag();
+        setZeroFlagTo( operand1.getByte() == 0x00 );
+        resetSubtractionFlag();
+        resetHalfCarryFlag();
+        resetCarryFlag();
         break;
         
       default :
@@ -518,18 +511,15 @@ class CPU_DMG
   
   
   // side effect: increases PC by 1
-  private void fetchNextInstructionCode()
+  private void fetchNextInstructionCodeByte()
   {
-    currentInstructionCode = (byte) bus.read( registers.PC.getDoubleByte() );
-    registers.PC.increment();
-    if( DEBUG_OUTPUT ) println( "[DEBUG] [PC] is now " + HEX2( registers.PC.getDoubleByte() ) );
-    currentNumReads++;
+    currentInstructionCode = readNextProgramByte();
   }
   
   
-  private byte readNextProgramByte()
+  private int readNextProgramByte()
   {
-    byte b = (byte) bus.read( registers.PC.getDoubleByte() );
+    int b = bus.read( registers.PC.getDoubleByte() );
     registers.PC.increment();
     if( DEBUG_OUTPUT ) println( "[DEBUG] [PC] is now " + HEX2( registers.PC.getDoubleByte() ) );
     currentNumReads++;
@@ -544,40 +534,48 @@ class CPU_DMG
         
     // DEBUG PURPOSE:
     bus.write( 0xFF44, 0x90 ); //LCD Y coordinate can only be written from PPU!
+  }
+  
+  
+  public void resetPostBootROM()
+  {
+    registers.resetPostBootROM();
+        
+    // DEBUG PURPOSE:
+    //bus.write( 0xFF44, 0x90 ); //LCD Y coordinate can only be written from PPU!
     
-    /* THE FOLLOWING SHOWS THE STATUS AFTER THE BOOTSTRAP SEQUENCE IS FINISHED */
-    //bus.write( 0xFF05, 0x00 ); //TIMA
-    //bus.write( 0xFF06, 0x00 ); //TMA
-    //bus.write( 0xFF07, 0x00 ); //TAC
-    //bus.write( 0xFF10, 0x80 ); //NR10
-    //bus.write( 0xFF11, 0xBF ); //NR11
-    //bus.write( 0xFF12, 0xF3 ); //NR12
-    //bus.write( 0xFF14, 0xBF ); //NR14
-    //bus.write( 0xFF16, 0x3F ); //NR21
-    //bus.write( 0xFF17, 0x00 ); //NR22
-    //bus.write( 0xFF19, 0xBF ); //NR24
-    //bus.write( 0xFF1A, 0x7F ); //NR30
-    //bus.write( 0xFF1B, 0xFF ); //NR31
-    //bus.write( 0xFF1C, 0x9F ); //NR32
-    //bus.write( 0xFF1E, 0xBF ); //NR33
-    //bus.write( 0xFF20, 0xFF ); //NR41
-    //bus.write( 0xFF21, 0x00 ); //NR42
-    //bus.write( 0xFF22, 0x00 ); //NR43
-    //bus.write( 0xFF23, 0xBF ); //NR30
-    //bus.write( 0xFF24, 0x77 ); //NR50
-    //bus.write( 0xFF25, 0xF3 ); //NR51
-    //bus.write( 0xFF26, 0xF1 ); //NR52 on GB
-    ////bus.write( 0xFF26, 0xF0 ); //NR52 on SGB
-    //bus.write( 0xFF40, 0x91 ); //LCDC
-    //bus.write( 0xFF42, 0x00 ); //SCY
-    //bus.write( 0xFF43, 0x00 ); //SCX
-    //bus.write( 0xFF45, 0x00 ); //LYC
-    //bus.write( 0xFF47, 0xFC ); //BGP
-    //bus.write( 0xFF48, 0xFF ); //OBP0
-    //bus.write( 0xFF49, 0xFF ); //OBP1
-    //bus.write( 0xFF4A, 0x00 ); //WY
-    //bus.write( 0xFF4B, 0x00 ); //WX
-    //bus.write( 0xFFFF, 0x00 ); //IE
+    bus.write( 0xFF05, 0x00 ); //TIMA
+    bus.write( 0xFF06, 0x00 ); //TMA
+    bus.write( 0xFF07, 0x00 ); //TAC
+    bus.write( 0xFF10, 0x80 ); //NR10
+    bus.write( 0xFF11, 0xBF ); //NR11
+    bus.write( 0xFF12, 0xF3 ); //NR12
+    bus.write( 0xFF14, 0xBF ); //NR14
+    bus.write( 0xFF16, 0x3F ); //NR21
+    bus.write( 0xFF17, 0x00 ); //NR22
+    bus.write( 0xFF19, 0xBF ); //NR24
+    bus.write( 0xFF1A, 0x7F ); //NR30
+    bus.write( 0xFF1B, 0xFF ); //NR31
+    bus.write( 0xFF1C, 0x9F ); //NR32
+    bus.write( 0xFF1E, 0xBF ); //NR33
+    bus.write( 0xFF20, 0xFF ); //NR41
+    bus.write( 0xFF21, 0x00 ); //NR42
+    bus.write( 0xFF22, 0x00 ); //NR43
+    bus.write( 0xFF23, 0xBF ); //NR30
+    bus.write( 0xFF24, 0x77 ); //NR50
+    bus.write( 0xFF25, 0xF3 ); //NR51
+    bus.write( 0xFF26, 0xF1 ); //NR52 on GB
+    //bus.write( 0xFF26, 0xF0 ); //NR52 on SGB
+    bus.write( 0xFF40, 0x91 ); //LCDC
+    bus.write( 0xFF42, 0x00 ); //SCY
+    bus.write( 0xFF43, 0x00 ); //SCX
+    bus.write( 0xFF45, 0x00 ); //LYC
+    bus.write( 0xFF47, 0xFC ); //BGP
+    bus.write( 0xFF48, 0xFF ); //OBP0
+    bus.write( 0xFF49, 0xFF ); //OBP1
+    bus.write( 0xFF4A, 0x00 ); //WY
+    bus.write( 0xFF4B, 0x00 ); //WX
+    bus.write( 0xFFFF, 0x00 ); //IE
   }
   
   
@@ -593,8 +591,10 @@ class CPU_DMG
   
   private class Registers
   {
+    FlagRegister 
+      F;
     B8
-      A, F,    //Accumulator, Flags
+      A,   //Accumulator
       B, C,
       D, E,
       H, L;
@@ -610,7 +610,7 @@ class CPU_DMG
     Registers()
     {
       this.A = new B8();
-      this.F = new B8();
+      this.F = new FlagRegister();
       this.B = new B8();
       this.C = new B8();
       this.D = new B8();
@@ -624,27 +624,6 @@ class CPU_DMG
       this.DE = new B16Split( this.D, this.E );
       this.HL = new B16Split( this.H, this.L );
     }
-    
-    
-    public boolean getZeroFlag       () { return F.get( 7 ); }
-    public boolean getSubtractionFlag() { return F.get( 6 ); }
-    public boolean getHalfCarryFlag  () { return F.get( 5 ); }
-    public boolean getCarryFlag      () { return F.get( 4 ); }
-    
-    public void setZeroFlagTo       ( boolean value ) { F.set( 7, value ); }
-    public void setSubtractionFlagTo( boolean value ) { F.set( 6, value ); }
-    public void setHalfCarryFlagTo  ( boolean value ) { F.set( 5, value ); }
-    public void setCarryFlagTo      ( boolean value ) { F.set( 4, value ); }
-    
-    public void setZeroFlag       () { F.set( 7, true ); }
-    public void setSubtractionFlag() { F.set( 6, true ); }
-    public void setHalfCarryFlag  () { F.set( 5, true ); }
-    public void setCarryFlag      () { F.set( 4, true ); }
-    
-    public void resetZeroFlag       () { F.set( 7, false ); }
-    public void resetSubtractionFlag() { F.set( 6, false ); }
-    public void resetHalfCarryFlag  () { F.set( 5, false ); }
-    public void resetCarryFlag      () { F.set( 4, false ); }
     
     
     public void reset()
@@ -692,6 +671,28 @@ class CPU_DMG
       "-----------------\n";
     }
   }
+  
+  
+  // comfort FLAG access for the CPU
+  public boolean getZeroFlag       () { return registers.F.getZ(); }
+  public boolean getSubtractionFlag() { return registers.F.getN(); }
+  public boolean getHalfCarryFlag  () { return registers.F.getH(); }
+  public boolean getCarryFlag      () { return registers.F.getC(); }
+  
+  public void setZeroFlagTo       ( boolean value ) { registers.F.set( 7, value ); }
+  public void setSubtractionFlagTo( boolean value ) { registers.F.set( 6, value ); }
+  public void setHalfCarryFlagTo  ( boolean value ) { registers.F.set( 5, value ); }
+  public void setCarryFlagTo      ( boolean value ) { registers.F.set( 4, value ); }
+  
+  public void setZeroFlag       () { registers.F.set( 7, true ); }
+  public void setSubtractionFlag() { registers.F.set( 6, true ); }
+  public void setHalfCarryFlag  () { registers.F.set( 5, true ); }
+  public void setCarryFlag      () { registers.F.set( 4, true ); }
+  
+  public void resetZeroFlag       () { registers.F.set( 7, false ); }
+  public void resetSubtractionFlag() { registers.F.set( 6, false ); }
+  public void resetHalfCarryFlag  () { registers.F.set( 5, false ); }
+  public void resetCarryFlag      () { registers.F.set( 4, false ); }
   
   
   
@@ -1012,12 +1013,12 @@ class CPU_DMG
     public void rotateLeft( boolean circular )
     {
       int out;
-      int fill = registers.getCarryFlag() ? 0b1 : 0b0;
+      int fill = getCarryFlag() ? 0b1 : 0b0;
       switch ( type )
       {
         case REGISTER_B8 :
           out = registerB8.getByte();
-          registers.setCarryFlagTo( ( out & 0b1000_0000 ) != 0 );
+          setCarryFlagTo( ( out & 0b1000_0000 ) != 0 );
           if( circular )
             fill = ( out >> 7 ) & 0b0000_0001;
           out = ( ( ( out & 0xFF ) << 1 ) & 0b1_1111_1110 ) | fill;
@@ -1028,7 +1029,7 @@ class CPU_DMG
             assert false : "rotateLeft() from 2 Byte Register is illegal!";
           int address = registerB16.getDoubleByte();
           out = bus.read( address );
-          registers.setCarryFlagTo( ( out & 0b1000_0000 ) != 0 );
+          setCarryFlagTo( ( out & 0b1000_0000 ) != 0 );
           if( circular )
             fill = ( out >> 7 ) & 0b0000_0001;
           out = ( ( ( out & 0xFF ) << 1 ) & 0b1_1111_1110 ) | fill;
@@ -1047,12 +1048,12 @@ class CPU_DMG
     public void rotateRight( boolean circular )
     {
       int out;
-      int fill = registers.getCarryFlag() ? 0b1000_0000 : 0b0000_0000;
+      int fill = getCarryFlag() ? 0b1000_0000 : 0b0000_0000;
       switch ( type )
       {
         case REGISTER_B8 :
           out = registerB8.getByte();
-          registers.setCarryFlagTo( ( out & 0b0000_0001 ) != 0 );
+          setCarryFlagTo( ( out & 0b0000_0001 ) != 0 );
           if( circular )
             fill = ( ( out << 7 ) & 0b1000_0000 );
           out = ( ( ( out & 0xFF ) >> 1 ) & 0b0111_1111 ) | fill;
@@ -1063,7 +1064,7 @@ class CPU_DMG
             assert false : "rotateRight() from 2 Byte Register is illegal!";
           int address = registerB16.getDoubleByte();
           out = bus.read( address );
-          registers.setCarryFlagTo( ( out & 0b0000_0001 ) != 0 );
+          setCarryFlagTo( ( out & 0b0000_0001 ) != 0 );
           if( circular )
             fill = ( ( out << 7 ) & 0b1000_0000 );
           out = ( ( ( out & 0xFF ) >> 1 ) & 0b0111_1111 ) | fill;
@@ -1082,12 +1083,12 @@ class CPU_DMG
     public void shiftRightArithmetic()
     {
       int out;
-      int fill = registers.getCarryFlag() ? 0b1 : 0b0;
+      int fill = getCarryFlag() ? 0b1 : 0b0;
       switch ( type )
       {
         case REGISTER_B8 :
           out = registerB8.getByte();
-          registers.setCarryFlagTo( ( out & 0b0000_0001 ) != 0 );
+          setCarryFlagTo( ( out & 0b0000_0001 ) != 0 );
           out = ( out >> 1 ) & 0b0111_1111 ;
           registerB8.setByte( out );
           return;
@@ -1096,7 +1097,7 @@ class CPU_DMG
             assert false : "shiftRightArithmetic() from 2 Byte Register is illegal!";
           int address = registerB16.getDoubleByte();
           out = bus.read( address );
-          registers.setCarryFlagTo( ( out & 0b0000_0001 ) != 0 );
+          setCarryFlagTo( ( out & 0b0000_0001 ) != 0 );
           out = ( out >> 1 ) & 0b0111_1111 ;
           bus.write( address, out );
         case VALUE_B8 :

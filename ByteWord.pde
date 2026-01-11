@@ -193,3 +193,39 @@ class B16Split extends B16
     return super.toString();
   }
 }
+
+
+class FlagRegister extends B8
+{
+  public void setByte( int b )
+  {
+    super.setByte( b & 0b11110000 );  //writes to the lower 4 flag bits have no effect
+  }
+  
+  
+  public int getByte()
+  {
+    return super.getByte() & 0b11110000;  // lower 4 flag bits always read 0
+  }
+  
+  
+  public boolean getZ() { return get( 7 ); }
+  public boolean getN() { return get( 6 ); }
+  public boolean getH() { return get( 5 ); }
+  public boolean getC() { return get( 4 ); }
+  
+  public void setZTo( boolean value ) { set( 7, value ); }
+  public void setNTo( boolean value ) { set( 6, value ); }
+  public void setHTo( boolean value ) { set( 5, value ); }
+  public void setCTo( boolean value ) { set( 4, value ); }
+  
+  public void setZ() { set( 7, true ); }
+  public void setN() { set( 6, true ); }
+  public void setH() { set( 5, true ); }
+  public void setC() { set( 4, true ); }
+  
+  public void resetZ() { set( 7, false ); }
+  public void resetN() { set( 6, false ); }
+  public void resetH() { set( 5, false ); }
+  public void resetC() { set( 4, false ); }
+}
